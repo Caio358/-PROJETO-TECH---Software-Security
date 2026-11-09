@@ -13,6 +13,8 @@ import residenceConfigRoutes from "./routes/residenceConfigRoutes";
 import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./config/swagger";
 import 'dotenv/config';
+import authRoutes from "./routes/authRoutes";
+import { authMiddleware } from "./middlewares/authMiddleware";
 
 
 const app = express();
@@ -21,17 +23,20 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Rotas
-app.use("/sensores", sensorRoutes);
-app.use("/leituras", sensorReadingRoutes);
-app.use("/ocorrencias", sensorOccurrenceRoutes);
-app.use("/alertas", alertRoutes);
-app.use("/protocolos-emergencia", emergencyProtocolRoutes);
-app.use("/simulador", simulatorRoutes);
-app.use("/ml", mlRoutes);
-app.use("/chat", chatRoutes);
-app.use("/configuracao-residencia", residenceConfigRoutes);
+// Rotas públicas
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use("/usuarios", authRoutes);
+
+// Rotas protegidas por autenticação JWT
+app.use("/sensores", authMiddleware, sensorRoutes);
+app.use("/leituras", authMiddleware, sensorReadingRoutes);
+app.use("/ocorrencias", authMiddleware, sensorOccurrenceRoutes);
+app.use("/alertas", authMiddleware, alertRoutes);
+app.use("/protocolos-emergencia", authMiddleware, emergencyProtocolRoutes);
+app.use("/simulador", authMiddleware, simulatorRoutes);
+app.use("/ml", authMiddleware, mlRoutes);
+app.use("/chat", authMiddleware, chatRoutes);
+app.use("/configuracao-residencia", authMiddleware, residenceConfigRoutes);
 
 // Primeira rota
 app.get("/", (req, res) => {

@@ -1,4 +1,5 @@
-
+import { avaliarRegrasSeguranca } from "./securityRuleService";
+import { executarAnaliseML } from "./mlService";
 import * as sensorRepository from "../repositories/sensorRepository";
 import * as readingRepository from "../repositories/sensorReadingRepository";
 
@@ -20,6 +21,11 @@ let fumacaAtual = 0.08;
 
 // Controla a progressão dos cenários.
 let etapaCenario = 0;
+
+let ciclosDesdeUltimaAnaliseML = 0;
+const CICLOS_ANALISE_ML = 6;
+
+let geracaoEmAndamento = false;
 
 function limitar(
     valor: number,
@@ -89,85 +95,127 @@ function gerarValor(tipo: string): {
     }
 }
 
+
 function gerarTemperatura(): number {
-  switch (cenarioAtual) {
-    case "NORMAL":
-      temperaturaAtual = variar(temperaturaAtual, 0.2, 23, 26);
-      break;
+    switch (cenarioAtual) {
+        case "NORMAL":
+            temperaturaAtual = variar(temperaturaAtual, 0.2, 23, 26);
+            break;
 
-    case "VARIACAO_INCOMUM":
-      temperaturaAtual = limitar(
-        temperaturaAtual + 0.15,
-        23,
-        26.9
-      );
-      break;
+        case "VARIACAO_INCOMUM":
+            temperaturaAtual = limitar(
+                temperaturaAtual + 0.15,
+                23,
+                26.9
+            );
+            break;
 
-    case "TESTE_FUMACA":
-      temperaturaAtual = variar(temperaturaAtual, 0.1, 24, 25);
-      break;
+        case "TESTE_FUMACA":
+            temperaturaAtual = 28;
+            break;
 
-    case "TESTE_TEMPERATURA":
-      temperaturaAtual = limitar(
-        temperaturaAtual + 0.25,
-        24,
-        26.5
-      );
-      break;
-  }
+        case "TESTE_TEMPERATURA":
+            temperaturaAtual = limitar(
+                temperaturaAtual + 0.25,
+                24,
+                26.5
+            );
+            break;
+    }
 
-  return Number(temperaturaAtual.toFixed(2));
+    return Number(temperaturaAtual.toFixed(2));
 }
 
+
+
 function gerarFumaca(): number {
-  switch (cenarioAtual) {
-    case "NORMAL":
-      fumacaAtual = variar(fumacaAtual, 0.005, 0.06, 0.10);
-      break;
+    switch (cenarioAtual) {
+        case "NORMAL":
+            fumacaAtual = variar(fumacaAtual, 0.005, 0.06, 0.10);
+            break;
 
-    case "VARIACAO_INCOMUM":
-      fumacaAtual = limitar(
-        fumacaAtual + 0.003,
-        0.06,
-        0.149
-      );
-      break;
+        case "VARIACAO_INCOMUM":
+            fumacaAtual = limitar(
+                fumacaAtual + 0.003,
+                0.06,
+                0.149
+            );
+            break;
 
-    case "TESTE_FUMACA":
-      fumacaAtual = limitar(
-        fumacaAtual + 0.005,
-        0.08,
-        0.14
-      );
-      break;
+        case "TESTE_FUMACA":
+            fumacaAtual = 0.18;
+            break;
 
-    case "TESTE_TEMPERATURA":
-      fumacaAtual = variar(fumacaAtual, 0.005, 0.06, 0.10);
-      break;
-  }
+        case "TESTE_TEMPERATURA":
+            fumacaAtual = variar(fumacaAtual, 0.005, 0.06, 0.10);
+            break;
+    }
 
-  return Number(fumacaAtual.toFixed(3));
+    return Number(fumacaAtual.toFixed(3));
 }
 
 export async function gerarLeituras() {
-    const sensores = await sensorRepository.listarAtivos();
-
-    for (const sensor of sensores) {
-        const leitura = gerarValor(sensor.tipo);
-
-        await readingRepository.cadastrar({
-            sensor_id: sensor.id_sensor,
-            valor: leitura.valor,
-            unidade: leitura.unidade
-        });
+    if (geracaoEmAndamento) {
+        console.log("Geração ignorada: já existe um ciclo em andamento.");
+        return;
     }
 
-    etapaCenario++;
+    geracaoEmAndamento = true;
 
-    console.log(
-        `${sensores.length} sensores processados. ` +
-        `Cenário: ${cenarioAtual}. Etapa: ${etapaCenario}.`
-    );
+    try {
+        const sensores = await sensorRepository.listarAtivos();
+
+        for (const sensor of sensores) {
+            const leitura = gerarValor(sensor.tipo);
+
+            await readingRepository.cadastrar({
+                sensor_id: sensor.id_sensor,
+                valor: leitura.valor,
+                unidade: leitura.unidade
+            });
+        }
+
+        etapaCenario++;
+
+        console.log(
+            `${sensores.length} sensores processados. ` +
+            `Cenário: ${cenarioAtual}. Etapa: ${etapaCenario}.`
+        );
+
+        try {
+            const resultado = await avaliarRegrasSeguranca();
+
+            if (resultado.total_ocorrencias_criadas > 0) {
+                console.log(
+                    `${resultado.total_ocorrencias_criadas} ocorrência(s) detectada(s).`
+                );
+            }
+        } catch (erro) {
+            console.error("Erro ao executar o motor de regras:", erro);
+        }
+
+        ciclosDesdeUltimaAnaliseML++;
+
+        if (ciclosDesdeUltimaAnaliseML >= CICLOS_ANALISE_ML) {
+            ciclosDesdeUltimaAnaliseML = 0;
+
+            try {
+                const resultadoML = await executarAnaliseML();
+
+                console.log(
+                    `Análise ML concluída. ` +
+                    `Anomalias encontradas: ${resultadoML.machine_learning.total_anomalias}. ` +
+                    `Ocorrências criadas: ${resultadoML.ocorrencias.ocorrencias_criadas}. ` +
+                    `Ocorrências reutilizadas: ${resultadoML.ocorrencias.ocorrencias_reutilizadas}.`
+                );
+            } catch (erro) {
+                console.error("Erro ao executar análise ML:", erro);
+            }
+        }
+
+    } finally {
+        geracaoEmAndamento = false;
+    }
 }
 
 export function selecionarCenario(cenario: string) {

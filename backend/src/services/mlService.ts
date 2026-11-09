@@ -1,5 +1,11 @@
 
-const ML_API_URL = process.env.ML_API_URL || "http://localhost:8000";
+import { registrarAnomaliasML } from "./mlOccurrenceService";
+
+const ML_API_URL =
+    process.env.ML_API_URL || "http://localhost:8000";
+
+// Compartilha a mesma execução entre chamadas simultâneas.
+let analiseEmAndamento: Promise<ResultadoAnaliseCompleta> | null = null;
 
 export interface AnomaliaML {
     id_leitura: number;
@@ -19,7 +25,16 @@ export interface ResultadoAnalise {
     anomalias: AnomaliaML[];
 }
 
-export async function executarAnaliseML(): Promise<ResultadoAnalise> {
+export interface ResultadoAnaliseCompleta {
+    machine_learning: ResultadoAnalise;
+    ocorrencias: {
+        total_processado: number;
+        ocorrencias_criadas: number;
+        ocorrencias_reutilizadas: number;
+    };
+}
+
+async function executarAnaliseInterna(): Promise<ResultadoAnaliseCompleta> {
     const resposta = await fetch(`${ML_API_URL}/analisar`, {
         method: "POST",
         headers: {
@@ -32,5 +47,32 @@ export async function executarAnaliseML(): Promise<ResultadoAnalise> {
         throw new Error(`Falha no serviço ML: ${erro}`);
     }
 
-    return await resposta.json() as ResultadoAnalise;
+    const resultadoML =
+        await resposta.json() as ResultadoAnalise;
+
+    const resultadoOcorrencias =
+        await registrarAnomaliasML();
+
+    return {
+        machine_learning: resultadoML,
+        ocorrencias: resultadoOcorrencias
+    };
+}
+
+export async function executarAnaliseML(): Promise<ResultadoAnaliseCompleta> {
+    if (analiseEmAndamento) {
+        console.log(
+            "Análise ML já em andamento. Aguardando a execução atual."
+        );
+
+        return analiseEmAndamento;
+    }
+
+    analiseEmAndamento = executarAnaliseInterna();
+
+    try {
+        return await analiseEmAndamento;
+    } finally {
+        analiseEmAndamento = null;
+    }
 }

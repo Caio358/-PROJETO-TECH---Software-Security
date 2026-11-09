@@ -1,7 +1,7 @@
+
 import { Request, Response } from "express";
 import { executarAnaliseML } from "../services/mlService";
 import { avaliarRegrasSeguranca } from "../services/securityRuleService";
-
 
 export async function analisarSensores(
     req: Request,
@@ -10,11 +10,16 @@ export async function analisarSensores(
     try {
         const resultadoML = await executarAnaliseML();
 
-        const resultadoSeguranca = await avaliarRegrasSeguranca();
+        const resultadoSeguranca =
+            await avaliarRegrasSeguranca();
 
         return res.status(200).json({
             mensagem: "Análise de segurança concluída.",
-            machine_learning: resultadoML,
+
+            machine_learning: resultadoML.machine_learning,
+
+            ocorrencias_ml: resultadoML.ocorrencias,
+
             motor_de_regras: resultadoSeguranca
         });
 

@@ -66,38 +66,72 @@ Antes de realizar alterações, o integrante deverá:
 
 ## 5. Branches e Versionamento
 
-A equipe poderá utilizar a seguinte organização:
+O projeto utilizará um fluxo de branches para organizar o desenvolvimento, facilitar a integração e proteger a versão estável do sistema.
 
-- `main`: versão principal e estável do projeto.
-- `develop`: integração das funcionalidades em desenvolvimento.
-- `feature/`: desenvolvimento de novas funcionalidades.
-- `fix/`: correção de problemas.
+As branches serão organizadas da seguinte forma:
 
-Exemplos:
+| Branch | Finalidade |
+|---|---|
+| `main` | Versão estável e validada do projeto |
+| `develop` | Integração das funcionalidades em desenvolvimento |
+| `feature/` | Desenvolvimento de novas funcionalidades |
+| `fix/` | Correção de problemas |
+| `docs/` | Alterações exclusivamente na documentação |
 
-```text
+### Fluxo de desenvolvimento
+
+1. Cada integrante deverá criar uma branch específica a partir de `develop`.
+2. As alterações deverão ser realizadas na branch correspondente à tarefa.
+3. Após concluir o trabalho, o integrante deverá abrir um Pull Request direcionado à `develop`.
+4. As alterações deverão ser revisadas e validadas antes da integração.
+5. Quando `develop` estiver estável, poderá ser aberto um Pull Request direcionado à `main`.
+
+Não deverão ser realizadas alterações diretamente na `main`.
+
+Exemplos de branches:
+
+``text
 feature/login
 feature/analise-ml
 fix/validacao-eventos
 docs/atualizacao-arquitetura
-```
-
-A adoção definitiva desse fluxo deverá ser alinhada entre os integrantes.
 
 ## 6. Pull Requests
 
-Quando o trabalho utilizar branches, as alterações deverão ser integradas por meio de Pull Requests.
+A integração das alterações deverá ser realizada por meio de Pull Requests (PRs), respeitando o fluxo de branches definido neste documento.
 
-Cada Pull Request deverá:
+### Integração com develop
 
+Todo Pull Request de funcionalidades, correções ou documentação deverá:
+
+- Ter como branch de origem a branch de trabalho do integrante.
+- Ter como branch de destino a `develop`.
 - Apresentar um título objetivo.
 - Descrever as alterações realizadas.
 - Identificar o módulo afetado.
-- Informar testes executados, quando aplicável.
-- Evitar incluir alterações sem relação com a tarefa.
+- Informar a Issue relacionada, quando existir.
+- Apresentar os testes executados, quando aplicável.
+- Evitar alterações sem relação com a tarefa.
 
-As alterações deverão ser revisadas antes de serem incorporadas à branch principal de integração.
+### Integração com main
 
+Quando a branch `develop` estiver estável e validada, poderá ser aberto um Pull Request com destino à `main`.
+
+Esse Pull Request deverá apresentar um resumo das alterações integradas e as validações realizadas.
+
+### Revisão e aprovação
+
+As alterações deverão ser analisadas antes da integração.
+
+A revisão deverá considerar:
+
+- Compatibilidade com a arquitetura do projeto.
+- Ausência de conflitos.
+- Funcionamento das funcionalidades afetadas.
+- Atualização da documentação, quando necessária.
+- Ausência de credenciais ou informações sensíveis.
+
+A integração deverá respeitar as regras de proteção configuradas no GitHub.
 ## 7. Qualidade e Segurança
 
 Todos os integrantes deverão observar as seguintes práticas:

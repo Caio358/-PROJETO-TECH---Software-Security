@@ -1,39 +1,55 @@
-# Front-End — Interface do Sistema
+# Sentinela — Segurança Inteligente
 
-## 1. Visão Geral
+Interface web responsiva para o projeto acadêmico de segurança residencial. A direção visual usa como referência o Figma enviado: azul-marinho, azul vivo, superfícies azul-acinzentadas, cartões arredondados e indicadores em verde. A estrutura e o modo de demonstração usam os conceitos, os sensores e os caminhos de API encontrados no repositório original.
 
-O módulo Front-End será responsável pela interface gráfica do Sistema Integrado de Segurança Inteligente.
+## Requisitos
 
-Seu objetivo é disponibilizar aos usuários uma interface acessível e organizada para acompanhar as informações do ambiente monitorado, visualizar ocorrências, consultar alertas e interagir com as funcionalidades do sistema.
+- Node.js 20 ou superior
+- pnpm 11.25.0 (a versão usada está fixada em `package.json`)
 
-O desenvolvimento deverá considerar a integração com o Back-End por meio de uma API REST.
+## Executar localmente
 
-## 2. Responsabilidades do Módulo
+```bash
+pnpm install
+pnpm dev
+```
 
-As principais responsabilidades do Front-End são:
+A aplicação abre na porta `5173`. Para gerar os arquivos estáticos de produção: `pnpm build`; a saída fica em `dist/`.
 
-- Desenvolver a interface visual do sistema.
-- Implementar as telas de monitoramento.
-- Apresentar ocorrências registradas pelo sistema.
-- Exibir alertas e níveis de criticidade.
-- Disponibilizar a consulta ao histórico de eventos.
-- Permitir a interação do usuário com o Chatbot.
-- Consumir os dados disponibilizados pelo Back-End.
-- Apresentar mensagens de carregamento, sucesso e erro.
-- Garantir uma navegação intuitiva e consistente.
+## Executar com o backend
 
-## 3. Funcionalidades Previstas
+Com o backend do repositório Software Security iniciado na porta `3001`, copie o arquivo de exemplo:
 
-### 3.1 Painel de Monitoramento
+```bash
+cp .env.example .env
+```
 
-Interface principal para apresentar informações gerais do ambiente monitorado.
+O valor padrão de `VITE_API_BASE_URL` já aponta para `http://localhost:3001`. Se o backend estiver em outra URL, altere esse valor antes de iniciar o Vite ou informe a URL em **Administração → Integração**.
 
-Poderá incluir:
+O front e o backend devem usar portas diferentes:
 
-- Quantidade de ocorrências registradas.
-- Alertas ativos.
-- Distribuição de eventos por tipo.
-- Indicadores de nível de risco.
-- Situação dos dispositivos monitorados, caso essa funcionalidade seja implementada.
+```text
+Front-end: http://localhost:5173
+Backend:   http://localhost:3001
+```
 
-### 3.2 Visual
+## Como os dados funcionam
+
+Por padrão, o sistema usa dados demonstrativos e os mantém no `localStorage` deste navegador. Câmeras são cartões de prévia ilustrativos — não existe transmissão de vídeo nessa interface. Mudanças no modo demonstrativo não comandam sensores ou equipamentos físicos. O chatbot também usa respostas predefinidas.
+
+Para conectar uma instância da API do repositório, use a tela inicial de **Login/Cadastro** ou abra **Administração → Integração** e informe a URL-base do backend (por exemplo, `http://localhost:3001`). O cadastro envia `POST /usuarios` e o login usa `POST /usuarios/login`; o backend grava o usuário na tabela `usuarios` do PostgreSQL. A interface consulta `/`, `/sensores`, `/ocorrencias`, `/alertas` e `/configuracao-residencia`, usando os contratos documentados no backend. Ela também usa `PUT /sensores/:id`, `PATCH /alertas/:id/status`, `PATCH /ocorrencias/:id/status`, `PATCH /configuracao-residencia/modo-seguranca` e `POST /chat/mensagem` para ações compatíveis.
+
+Na tela **Simulação**, o front chama `POST /simulador/iniciar`, `POST /simulador/parar`, `GET /simulador/status` e `POST /simulador/cenario`, permitindo demonstrar a geração de leituras e eventos artificiais. O backend precisa estar executando e aceitar CORS para a origem da interface. Endpoints não configurados ou indisponíveis não são simulados como conexão real.
+
+O código não inclui credenciais nem chaves de API. O serviço de chat do backend depende da configuração própria desse serviço.
+
+## Estrutura
+
+- `src/App.jsx`: estado, navegação, ações e telas principais.
+- `src/pages/`: telas do painel, monitoramento, dispositivos, alertas, histórico e administração.
+- `src/components/`: componentes reutilizáveis, câmera, modal e chatbot.
+- `src/data/demoData.js`: conjunto local demonstrativo.
+- `src/services/securityApi.js`: adaptador para os endpoints reais.
+- `src/services/authApi.js`: cadastro e login de usuários.
+- `src/services/simulatorApi.js`: controle da simulação de sensores.
+- `src/styles.css`: identidade visual, responsividade e estados.
